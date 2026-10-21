@@ -1,0 +1,9 @@
+{
+  "appId": "ma.nitrotanger.racing3d",
+  "appName": "Nitro Tanger 3D",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#0a0f1c",
+    "webContentsDebuggingEnabled": false
+  }
+}
