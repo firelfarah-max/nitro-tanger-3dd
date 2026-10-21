@@ -1,0 +1,63 @@
+
+name: Build Nitro Tanger 3D APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: android-actions/setup-android@v4
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Install packages
+        run: npm install --no-audit --no-fund
+      - name: Prepare offline 3D game
+        run: |
+          mkdir -p www/vendor
+          cp index.html www/index.html
+          cp node_modules/three/build/three.min.js www/vendor/three.min.js
+          cp node_modules/three/examples/js/loaders/GLTFLoader.js www/vendor/GLTFLoader.js
+          test -s www/index.html
+          test -s www/vendor/three.min.js
+          test -s www/vendor/GLTFLoader.js
+      - name: Prepare Android
+        run: |
+          npx cap add android
+          npx cap sync android
+      - name: Fullscreen landscape orientation
+        run: |
+          python3 - <<'PY2'
+          from pathlib import Path
+          f=Path('android/app/src/main/AndroidManifest.xml')
+          s=f.read_text()
+          assert '<activity' in s
+          s=s.replace('<activity', '<activity android:screenOrientation="landscape"', 1)
+          f.write_text(s)
+          PY2
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon
+      - name: Downloadable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nitro-Tanger-3D-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+          
